@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SmartPark — Intelligent Parking System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+<style>
+/* ─── ROOT VARIABLES ──────────────────────────────────────────────────── */
+:root {
+  --bg:        #0a0c10;
+  --bg2:       #10131a;
+  --bg3:       #161b25;
+  --card:      #141820;
+  --border:    #1e2535;
+  --neon:      #00e5ff;
+  --neon2:     #00ff99;
+  --neon3:     #7b61ff;
+  --red:       #ff3b5c;
+  --text:      #e2e8f4;
+  --muted:     #5a6580;
+  --radius:    14px;
+  --trans:     0.3s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* ─── RESET & BASE ────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Ambient grid background */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+body::after {
+  content: '';
+  position: fixed;
+  top: -20%; left: 50%; transform: translateX(-50%);
+  width: 80vw; height: 50vh;
+  background: radial-gradient(ellipse at center, rgba(0,229,255,0.06) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ─── SCREEN SYSTEM ───────────────────────────────────────────────────── */
+.screen {
+  display: none;
+  min-height: 100vh;
+  position: relative;
+  z-index: 1;
+  animation: fadeSlideIn 0.4s ease forwards;
+}
+.screen.active { display: flex; flex-direction: column; }
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── SHARED HEADER ───────────────────────────────────────────────────── */
+.top-bar {
+  display: flex; align-items: center; gap: 12px;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(10,12,16,0.85);
+  backdrop-filter: blur(12px);
+  position: sticky; top: 0; z-index: 100;
+}
+.top-bar .logo {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.3rem; font-weight: 700;
+  color: var(--neon);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.back-btn {
+  background: none; border: none; cursor: pointer;
+  color: var(--muted); font-size: 1.1rem;
+  padding: 6px 10px; border-radius: 8px;
+  transition: color var(--trans), background var(--trans);
+  margin-right: 4px;
+}
+.back-btn:hover { color: var(--neon); background: rgba(0,229,255,0.08); }
+.top-bar .screen-title {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.1rem; font-weight: 600;
+  letter-spacing: 1px; color: var(--text);
+}
+.top-bar .spacer { flex: 1; }
+.top-bar .status-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--neon2);
+  box-shadow: 0 0 8px var(--neon2);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+/* ─── BUTTONS ─────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 14px 28px; border-radius: 50px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1rem; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase;
+  cursor: pointer; border: none; transition: all var(--trans);
+  position: relative; overflow: hidden;
+  white-space: nowrap;
+}
+.btn::after {
+  content: ''; position: absolute; inset: 0;
+  background: rgba(255,255,255,0.07);
+  opacity: 0; transition: opacity var(--trans);
+}
+.btn:hover::after { opacity: 1; }
+.btn:active { transform: scale(0.97); }
+
+.btn-primary {
+  background: linear-gradient(135deg, #00bcd4 0%, #00e5ff 100%);
+  color: #0a0c10;
+  box-shadow: 0 0 20px rgba(0,229,255,0.3), 0 4px 15px rgba(0,0,0,0.4);
+}
+.btn-primary:hover { box-shadow: 0 0 35px rgba(0,229,255,0.5), 0 6px 20px rgba(0,0,0,0.4); transform: translateY(-2px); }
+
+.btn-secondary {
+  background: transparent;
+  color: var(--neon);
+  border: 1.5px solid rgba(0,229,255,0.4);
+  box-shadow: inset 0 0 15px rgba(0,229,255,0.05);
+}
+.btn-secondary:hover { border-color: var(--neon); box-shadow: 0 0 20px rgba(0,229,255,0.2), inset 0 0 20px rgba(0,229,255,0.1); transform: translateY(-2px); }
+
+.btn-ghost {
+  background: rgba(255,255,255,0.04);
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+.btn-ghost:hover { color: var(--text); background: rgba(255,255,255,0.08); }
+
+.btn-danger {
+  background: linear-gradient(135deg, #c9253e 0%, #ff3b5c 100%);
+  color: #fff;
+  box-shadow: 0 0 20px rgba(255,59,92,0.3);
+}
+.btn-success {
+  background: linear-gradient(135deg, #00c477 0%, #00ff99 100%);
+  color: #0a0c10;
+  box-shadow: 0 0 20px rgba(0,255,153,0.3);
+}
+.btn-success:hover { box-shadow: 0 0 35px rgba(0,255,153,0.5); transform: translateY(-2px); }
+.btn-full { width: 100%; }
+.btn-sm { padding: 9px 20px; font-size: 0.85rem; }
+
+/* ─── CARDS ───────────────────────────────────────────────────────────── */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  transition: border-color var(--trans), box-shadow var(--trans), transform var(--trans);
+}
+.card:hover { border-color: rgba(0,229,255,0.25); box-shadow: 0 8px 30px rgba(0,0,0,0.4); transform: translateY(-2px); }
+.card.selected { border-color: var(--neon); box-shadow: 0 0 20px rgba(0,229,255,0.2); }
+
+/* ─── INPUT / SELECT ──────────────────────────────────────────────────── */
+.input-wrap {
+  position: relative; display: flex; align-items: center;
+}
+.input-wrap i {
+  position: absolute; left: 16px;
+  color: var(--muted); font-size: 0.9rem;
+  pointer-events: none;
+}
+input[type="text"], select {
+  width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 50px;
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.95rem;
+  padding: 14px 20px 14px 44px;
+  outline: none;
+  transition: border-color var(--trans), box-shadow var(--trans);
+  -webkit-appearance: none;
+}
+input[type="text"]:focus, select:focus {
+  border-color: rgba(0,229,255,0.5);
+  box-shadow: 0 0 0 3px rgba(0,229,255,0.08);
+}
+input::placeholder { color: var(--muted); }
+select { padding-left: 44px; cursor: pointer; }
+
+/* ─── BADGE ───────────────────────────────────────────────────────────── */
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 12px; border-radius: 50px;
+  font-size: 0.75rem; font-weight: 600; letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.badge-available { background: rgba(0,255,153,0.12); color: var(--neon2); border: 1px solid rgba(0,255,153,0.3); }
+.badge-full { background: rgba(255,59,92,0.12); color: var(--red); border: 1px solid rgba(255,59,92,0.3); }
+
+/* ─── TAG CHIP ────────────────────────────────────────────────────────── */
+.chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 14px; border-radius: 50px;
+  font-size: 0.8rem; font-weight: 500;
+  background: var(--bg3); border: 1px solid var(--border); color: var(--muted);
+}
+.chip i { font-size: 0.75rem; color: var(--neon); }
+
+/* ─── SCROLLABLE CONTENT ──────────────────────────────────────────────── */
+.content {
+  flex: 1; overflow-y: auto;
+  padding: 24px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.content::-webkit-scrollbar { width: 4px; }
+.content::-webkit-scrollbar-track { background: transparent; }
+.content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* ═══════════════════════════════════════════════════════════════════════ */
+/* SCREEN 1 — HOME                                                        */
+/* ═══════════════════════════════════════════════════════════════════════ */
+#screen-home {
+  background: var(--bg);
+  justify-content: center; align-items: center;
+  padding: 40px 24px;
+  text-align: center;
+}
+.home-glow {
+  position: absolute;
+  width: 400px; height: 400px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(0,229,255,0.12) 0%, transparent 70%);
+  top: 50%; left: 50%; transform: translate(-50%, -55%);
+  pointer-events: none;
+}
+.home-icon-ring {
+  position: relative;
+  width: 110px; height: 110px;
+  margin: 0 auto 32px;
+}
+.home-icon-ring .ring {
+  position: absolute; inset: 0;
+  border-radius: 50%;
+  border: 1.5px solid rgba(0,229,255,0.2);
+  animation: spinSlow 8s linear infinite;
+}
+.home-icon-ring .ring:nth-child(2) {
+  inset: 12px;
+  border-color: rgba(0,229,255,0.12);
+  animation-direction: reverse; animation-duration: 5s;
+}
+.home-icon-ring .core {
+  position: absolute; inset: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(0,180,210,0.15), rgba(0,229,255,0.08));
+  border: 1.5px solid rgba(0,229,255,0.35);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.8rem; color: var(--neon);
+  box-shadow: 0 0 25px rgba(0,229,255,0.2);
+}
+@keyframes spinSlow { to { transform: rotate(360deg); } }
+
+.home-headline {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: clamp(2rem, 8vw, 3rem);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.home-headline span { color: var(--neon); }
+.home-subtitle {
+  font-size: 0.9rem; color: var(--muted); letter-spacing: 0.5px;
+  margin-bottom: 48px; max-width: 280px; margin-left: auto; margin-right: auto;
+}
+
+.home-stats {
+  display: flex; gap: 16px; justify-content: center;
+  margin-bottom: 44px; flex-wrap: wrap;
+}
+.stat-pill {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 50px;
+  padding: 10px 20px;
+  display: flex; align-items: center; gap: 8px;
+}
+.stat-pill i { color: var(--neon); font-size: 0.85rem; }
+.stat-pill span { font-size: 0.8rem; color: var(--muted); }
+.stat-pill strong { font-size: 0.85rem; font-weight: 600; color: var(--text); }
+
+.home-actions { display: flex; flex-direction: column; gap: 14px; width: 100%; max-width: 340px; margin: 0 auto; }
+.home-actions .divider {
+  display: flex; align-items: center; gap: 12px;
+  color: var(--muted); font-size: 0.8rem;
+}
+.home-actions .divider::before,
+.home-actions .divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════ */
+/* SCREEN 2 — LOCATION                                                    */
+/* ═══════════════════════════════════════════════════════════════════════ */
+.section-label {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.75rem; font-weight: 600;
+  letter-spacing: 2px; text-transform: uppercase; color: var(--muted);
+  margin-bottom: 12px;
+}
+.loc-btn-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+  margin: 20px 0;
+}
+.loc-type-btn {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 14px; cursor: pointer;
+  text-align: center; transition: all var(--trans);
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+}
+.loc-type-btn i { font-size: 1.4rem; color: var(--muted); transition: color var(--trans); }
+.loc-type-btn span { font-size: 0.8rem; font-weight: 500; color: var(--muted); transition: color var(--trans); }
+.loc-type-btn:hover, .loc-type-btn.active {
+  border-color: var(--neon);
+  background: rgba(0,229,255,0.06);
+  box-shadow: 0 0 15px rgba(0,229,255,0.1);
+}
+.loc-type-btn:hover i, .loc-type-btn.active i { color: var(--neon); }
+.loc-type-btn:hover span, .loc-type-btn.active span { color: var(--neon); }
+
+.recent-list { display: flex; flex-direction: column; gap: 10px; }
+.recent-item {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 16px;
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  cursor: pointer; transition: all var(--trans);
+}
+.recent-item:hover { border-color: rgba(0,229,255,0.3); transform: translateX(4px); }
+.recent-item .ri-icon {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: var(--bg3); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--neon); font-size: 0.85rem; flex-shrink: 0;
+}
+.recent-item .ri-name { font-size: 0.9rem; font-weight: 500; }
+.recent-item .ri-sub { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+.recent-item .ri-arrow { margin-left: auto; color: var(--muted); font-size: 0.8rem; }
+
+/* ═══════════════════════════════════════════════════════════════════════ */
+/* SCREEN 3 — AVAILABILITY                                                */
+/* ═══════════════════════════════════════════════════════════════════════ */
+.filter-row {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.filter-chip {
+  padding: 7px 16px; border-radius: 50px;
+  border: 1px solid var(--border); background: var(--card);
+  font-size: 0.8rem; font-weight: 500; color: var(--muted);
+  cursor: pointer; transition: all var(--trans);
+  white-space: nowrap;
+}
+.filter-chip:hover, .filter-chip.active {
+  border-color: var(--neon);
+  color: var(--neon);
+  background: rgba(0,229,255,0.07);
+}
+
+.parking-list { display: flex; flex-direction: column; gap: 14px; }
+.parking-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  cursor: pointer; transition: all var(--trans);
+  position: relative; overflow: hidden;
+}
+.parking-card::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+  width: 3px; background: var(--neon2);
+  border-radius: 3px 0 0 3px;
+  transition: background var(--trans);
+}
+.parking-card.full::before { background: var(--red); }
+.parking-card:hover { border-color: rgba(0,229,255,0.3); transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,0,0,0.4); }
+.parking-card.full:hover { border-color: rgba(255,59,92,0.3); }
+
+.pc-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+.pc-name { font-family: 'Rajdhani', sans-serif; font-size: 1.1rem; font-weight: 700; letter-spacing: 0.5px; }
+.pc-meta { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.pc-meta .chip { font-size: 0.77rem; }
+.pc-bottom { display: flex; align-items: center; justify-content: space-between; }
+.pc-slots { font-size: 0.8rem; color: var(--muted); }
+.pc-slots strong { font-size: 1rem; font-weight: 700; }
+.pc-slots.available strong { color: var(--neon2); }
+.pc-slots.full strong { color: var(--red); }
+.pc-price { font-family: 'Rajdhani', sans-serif; font-size: 1.1rem; font-weight: 700; color: var(--neon); }
+
+/* ═══════════════════════════════════════════════════════════════════════ */
+/* SCREEN 4 — SLOT SELECTION                                              */
+/* ═══════════════════════════════════════════════════════════════════════ */
+.slot-info-banner {
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 14px 18px; margin-bottom: 20px;
+  display: flex; align-items: center; gap: 12px;
+}
+.slot-info-banner i { color: var(--neon); font-size: 1.1rem; }
+.slot-info-banner .sib-name { font-weight: 600; font-size: 0.95rem; }
+.slot-info-banner .sib-sub { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+
+.legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+.legend-item { display: flex; align-items: center; gap: 7px; font-size: 0.8rem; color: var(--muted); }
+.legend-dot { width: 12px; height: 12px; border-radius: 4px; }
+.legend-dot.available { background: rgba(0,255,153,0.25); border: 1.5px solid var(--neon2); }
+.legend-dot.booked   { background: rgba(255,59,92,0.2);  border: 1.5px solid var(--red); }
+.legend-dot.selected { background: rgba(0,229,255,0.25); border: 1.5px solid var(--neon); }
+
+.zone-label {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.75rem; font-weight: 600; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--muted); margin: 16px 0 10px;
+}
+.slot-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 8px; }
+.slot-cell {
+  aspect-ratio: 1;
+  border-radius: 10px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.9rem; font-weight: 700; letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all var(--trans);
+  position: relative; overflow: hidden;
+  border: 1.5px solid transparent;
+  gap: 4px;
+}
+.slot-cell i { font-size: 0.8rem; }
+.slot-cell.available {
+  background: rgba(0,255,153,0.07);
+  border-color: rgba(0,255,153,0.25);
+  color: var(--neon2);
+}
+.slot-cell.available:hover {
+  background: rgba(0,255,153,0.15);
+  border-color: var(--neon2);
+  box-shadow: 0 0 15px rgba(0,255,153,0.2);
+  transform: scale(1.05);
+}
+.slot-cell.booked {
+  background: rgba(255,59,92,0.07);
+  border-color: rgba(255,59,92,0.2);
+  color: rgba(255,59,92,0.5);
+  cursor: not-allowed;
+}
+.slot-cell.selected {
+  background: rgba(0,229,255,0.12);
+  border-color: var(--neon);
+  color: var(--neon);
+  box-shadow: 0 0 18px rgba(0,229,255,0.25);
+}
+.slot-cell .car-icon { font-size: 0.7rem; opacity: 0.6; }
+
+.slot-footer {
+  position: sticky; bottom: 0;
+  background: linear-gradient(to top, var(--bg) 80%, transparent);
+  padding: 20px 24px;
+  z-index: 10;
+}
+.slot-footer .selected-label {
+  font-size: 0.82rem; color: var(--muted); margin-bottom: 8px; text-align: center;
+}
+.slot-footer .selected-label span { color: var(--neon); font-weight: 600; }
+
+/* ═══════════════════════════════════════════════════════════════════════ */
+/* SCREEN 5 — BOOKING                                                     */
+/* ═══════════════════════════════════════════════════════════════════════ */
+.booking-summary {
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 20px; margin-bottom: 20px;
+}
+.bs-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+.bs-row:last-child { border-bottom: none; }
+.bs-label { color: var(--muted); }
+.bs-value { font-weight: 600; color: var(--text); }
+.bs-value.highlight { color: var(--neon); font-family: 'Rajdhani', sans-serif; font-size: 1.05rem; font-weight: 700; }
+
+.duration-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 16px 0 24px; }
+.dur-btn {
+  padding: 14px 10px; border-radius: var(--radius);
+  background: var(--card); border: 1px solid var(--border);
+  cursor: pointer; text-align: center; transition: all var(--trans);
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.dur-btn:hover { border-color: rgba(0,229,255,0.4); }
+.dur-btn.active { border-color: var(--neon); background: rgba(0,229,255,0.08); box-shadow: 0 0 12px rgba(0,229,255,0.15); }
+.dur-btn .dur-time { font-family: 'Rajdhani', sans-serif; font-size: 1.1rem; font-weight: 700; color: var(--neon); }
+.dur-btn .dur-price { font-size: 0.75rem; color: var(--muted); }
+.dur-btn.active .dur-price { color: var(--neon2); }
+
+.total-box {
+  background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 16px 20px; margin-bottom: 24px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.total-box .tb-label { font-size: 0.85rem; color: var(--muted); }
+.total-box .tb-amount { font-family: 'Rajdhani', sans-serif; font-size: 1.6rem; font-weight: 700; color: var(--neon2); }
+
+/* ═══════════════════════════════════════════════════════════════════════ */
+/* SCREEN 6 — NAVIGATION / CONFIRMATION                                  */
+/* ═══════════════════════════════════════════════════════════════════════ */
+.confirm-badge {
+  width: 80px; height: 80px; border-radius: 50%;
+  background: linear-gradient(135deg, rgba(0,200,120,0.15), rgba(0,255,153,0.08));
+  border: 2px solid var(--neon2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2rem; color: var(--neon2);
+  margin: 0 auto 20px;
+  box-shadow: 0 0 30px rgba(0,255,153,0.2);
+  animation: confirmPop 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards;
+}
+@keyframes confirmPop {
+  from { transform: scale(0.5); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+.map-placeholder {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  height: 220px; margin: 20px 0;
+  position: relative; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+}
+.map-placeholder .map-grid {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(0,229,255,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,229,255,0.04) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+.map-placeholder .map-road-h {
+  position: absolute; height: 3px;
+  background: rgba(0,229,255,0.15);
+  left: 0; right: 0;
+}
+.map-placeholder .map-road-v {
+  position: absolute; width: 3px;
+  background: rgba(0,229,255,0.15);
+  top: 0; bottom: 0;
+}
+.map-pin {
+  position: absolute; display: flex; flex-direction: column; align-items: center; z-index: 2;
+}
+.map-pin-inner {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--neon); border: 3px solid var(--bg);
+  box-shadow: 0 0 20px rgba(0,229,255,0.6);
+  animation: mapPulse 2s infinite;
+}
+.map-pin-inner.dest {
+  background: var(--neon2);
+  box-shadow: 0 0 20px rgba(0,255,153,0.6);
+}
+@keyframes mapPulse {
+  0%,100% { box-shadow: 0 0 20px rgba(0,229,255,0.6); }
+  50% { box-shadow: 0 0 35px rgba(0,229,255,0.9); }
+}
+.map-route {
+  position: absolute; overflow: visible;
+  width: 100%; height: 100%; top: 0; left: 0;
+}
+.map-label {
+  font-size: 0.65rem; font-weight: 600; color: var(--neon);
+  background: var(--bg); padding: 2px 8px; border-radius: 50px;
+  border: 1px solid rgba(0,229,255,0.3); margin-top: 4px; white-space: nowrap;
+}
+.map-label.dest-label { color: var(--neon2); border-color: rgba(0,255,153,0.3); }
+
+.eta-row {
+  display: flex; gap: 12px; margin-bottom: 20px;
+}
+.eta-card {
+  flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 14px; text-align: center;
+}
+.eta-card i { font-size: 1.1rem; color: var(--neon); margin-bottom: 6px; display: block; }
+.eta-card .eta-val { font-family: 'Rajdhani', sans-serif; font-size: 1.3rem; font-weight: 700; }
+.eta-card .eta-sub { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+
+.booking-id-box {
+  background: linear-gradient(135deg, rgba(0,229,255,0.06), rgba(123,97,255,0.06));
+  border: 1px solid rgba(0,229,255,0.2);
+  border-radius: var(--radius); padding: 14px 18px;
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 20px;
+}
+.bid-label { font-size: 0.78rem; color: var(--muted); margin-bottom: 4px; }
+.bid-value { font-family: 'Rajdhani', sans-serif; font-size: 1.1rem; font-weight: 700; letter-spacing: 3px; color: var(--neon); }
+.bid-copy { font-size: 0.85rem; color: var(--muted); cursor: pointer; padding: 6px; border-radius: 6px; transition: color var(--trans); }
+.bid-copy:hover { color: var(--neon); }
+
+/* ─── UTILITY ─────────────────────────────────────────────────────────── */
+.gap-sm { margin-bottom: 12px; }
+.gap-md { margin-bottom: 20px; }
+.gap-lg { margin-bottom: 32px; }
+.text-center { text-align: center; }
+.text-muted { color: var(--muted); font-size: 0.85rem; }
+.flex-row { display: flex; align-items: center; gap: 10px; }
+.flex-between { display: flex; align-items: center; justify-content: space-between; }
+
+/* ─── RESPONSIVE ──────────────────────────────────────────────────────── */
+@media (min-width: 600px) {
+  .content { max-width: 520px; margin: 0 auto; }
+  .slot-grid { grid-template-columns: repeat(5, 1fr); }
+  .duration-grid { grid-template-columns: repeat(6, 1fr); }
+  #screen-home { padding: 60px 40px; }
+}
+@media (min-width: 900px) {
+  body { display: flex; justify-content: center; }
+  .screen { max-width: 480px; width: 100%; box-shadow: 0 0 60px rgba(0,0,0,0.8); }
+  body::after { display: none; }
+}
+
+/* ─── TOAST ───────────────────────────────────────────────────────────── */
+#toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 50px; padding: 12px 24px;
+  font-size: 0.88rem; color: var(--text);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+  z-index: 9999; transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
+  display: flex; align-items: center; gap: 10px; white-space: nowrap;
+}
+#toast.show { transform: translateX(-50%) translateY(0); }
+#toast i { color: var(--neon2); }
+
+/* ─── LOADING BAR ─────────────────────────────────────────────────────── */
+.progress-bar {
+  height: 2px;
+  background: linear-gradient(90deg, var(--neon), var(--neon3));
+  border-radius: 1px;
+  animation: loadBar 1.5s ease forwards;
+  margin-bottom: 20px;
+}
+@keyframes loadBar { from { width: 0; } to { width: 100%; } }
+</style>
+</head>
+<body>
+
+<!-- ───────────────────────────────── TOAST ─── -->
+<div id="toast"><i class="fas fa-check-circle"></i><span id="toast-msg">Done!</span></div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- SCREEN 1: HOME                                                      -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section id="screen-home" class="screen active">
+  <div class="home-glow"></div>
+  <div class="home-icon-ring">
+    <div class="ring"></div>
+    <div class="ring"></div>
+    <div class="core"><i class="fas fa-parking"></i></div>
+  </div>
+  <div class="home-headline">Smart<br><span>Park</span></div>
+  <div class="home-subtitle">AI-powered urban parking. Find, book & navigate in seconds.</div>
+
+  <div class="home-stats">
+    <div class="stat-pill"><i class="fas fa-circle-dot"></i><span>Zones</span><strong>24</strong></div>
+    <div class="stat-pill"><i class="fas fa-bolt"></i><span>Available</span><strong>142</strong></div>
+    <div class="stat-pill"><i class="fas fa-users"></i><span>Active</span><strong>89</strong></div>
+  </div>
+
+  <div class="home-actions">
+    <button class="btn btn-primary btn-full" onclick="goTo('screen-location')">
+      <i class="fas fa-search-location"></i> Find Parking
+    </button>
+    <button class="btn btn-secondary btn-full" onclick="goTo('screen-availability')">
+      <i class="fas fa-map-marked-alt"></i> View Map
+    </button>
+    <div class="divider">or</div>
+    <button class="btn btn-ghost btn-full" onclick="goTo('screen-location')">
+      <i class="fas fa-user"></i> Continue as Guest
+    </button>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- SCREEN 2: LOCATION SELECTION                                        -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section id="screen-location" class="screen">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goTo('screen-home')"><i class="fas fa-arrow-left"></i></button>
+    <span class="screen-title">Select Location</span>
+    <div class="spacer"></div>
+    <div class="status-dot"></div>
+  </div>
+  <div class="content">
+    <div class="gap-md">
+      <div class="input-wrap">
+        <i class="fas fa-search"></i>
+        <input type="text" id="loc-search" placeholder="Search mall, office, street…" oninput="filterLocations(this.value)">
+      </div>
+    </div>
+
+    <button class="btn btn-secondary btn-full gap-md" onclick="useCurrentLocation()">
+      <i class="fas fa-crosshairs"></i> Use Current Location
+    </button>
+
+    <div class="section-label">Filter by type</div>
+    <div class="loc-btn-grid gap-md">
+      <div class="loc-type-btn active" onclick="selectLocType(this,'Mall')">
+        <i class="fas fa-store"></i><span>Mall</span>
+      </div>
+      <div class="loc-type-btn" onclick="selectLocType(this,'Office')">
+        <i class="fas fa-building"></i><span>Office</span>
+      </div>
+      <div class="loc-type-btn" onclick="selectLocType(this,'Street')">
+        <i class="fas fa-road"></i><span>Street</span>
+      </div>
+      <div class="loc-type-btn" onclick="selectLocType(this,'Airport')">
+        <i class="fas fa-plane"></i><span>Airport</span>
+      </div>
+    </div>
+
+    <div class="section-label">Recent Locations</div>
+    <div class="recent-list" id="recent-list">
+      <!-- filled by JS -->
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- SCREEN 3: AVAILABILITY                                              -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section id="screen-availability" class="screen">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goTo('screen-location')"><i class="fas fa-arrow-left"></i></button>
+    <span class="screen-title">Nearby Parking</span>
+    <div class="spacer"></div>
+    <div class="status-dot"></div>
+  </div>
+  <div class="content">
+    <div class="progress-bar" id="avail-bar"></div>
+    <div class="filter-row" id="filter-row">
+      <div class="filter-chip active" onclick="setFilter(this,'all')">All</div>
+      <div class="filter-chip" onclick="setFilter(this,'available')">Available</div>
+      <div class="filter-chip" onclick="setFilter(this,'cheapest')">Cheapest</div>
+      <div class="filter-chip" onclick="setFilter(this,'nearest')">Nearest</div>
+    </div>
+    <div class="parking-list" id="parking-list">
+      <!-- filled by JS -->
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- SCREEN 4: SLOT SELECTION                                            -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section id="screen-slots" class="screen">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goTo('screen-availability')"><i class="fas fa-arrow-left"></i></button>
+    <span class="screen-title">Select Slot</span>
+    <div class="spacer"></div>
+    <div class="status-dot"></div>
+  </div>
+  <div class="content">
+    <div class="slot-info-banner" id="slot-banner">
+      <i class="fas fa-map-pin"></i>
+      <div>
+        <div class="sib-name" id="slot-banner-name">—</div>
+        <div class="sib-sub" id="slot-banner-sub">—</div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot available"></div> Available</div>
+      <div class="legend-item"><div class="legend-dot booked"></div> Booked</div>
+      <div class="legend-item"><div class="legend-dot selected"></div> Selected</div>
+    </div>
+
+    <div id="slot-zones"><!-- filled by JS --></div>
+  </div>
+  <div class="slot-footer">
+    <div class="selected-label">Selected: <span id="selected-slot-label">None</span></div>
+    <button class="btn btn-primary btn-full" id="proceed-btn" onclick="proceedToBooking()" disabled style="opacity:0.4">
+      <i class="fas fa-arrow-right"></i> Proceed to Booking
+    </button>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- SCREEN 5: BOOKING                                                   -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section id="screen-booking" class="screen">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goTo('screen-slots')"><i class="fas fa-arrow-left"></i></button>
+    <span class="screen-title">Confirm Booking</span>
+    <div class="spacer"></div>
+  </div>
+  <div class="content">
+    <div class="booking-summary" id="booking-summary">
+      <!-- filled by JS -->
+    </div>
+
+    <div class="section-label">Select Duration</div>
+    <div class="duration-grid" id="dur-grid"><!-- filled by JS --></div>
+
+    <div class="total-box">
+      <div>
+        <div class="tb-label">Total Amount</div>
+        <div class="tb-amount" id="total-amount">₹0</div>
+      </div>
+      <i class="fas fa-receipt" style="color:var(--muted); font-size:1.5rem;"></i>
+    </div>
+
+    <button class="btn btn-success btn-full" onclick="confirmBooking()">
+      <i class="fas fa-check-circle"></i> Confirm & Pay
+    </button>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- SCREEN 6: NAVIGATION                                               -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section id="screen-nav" class="screen">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goTo('screen-home')"><i class="fas fa-home"></i></button>
+    <span class="screen-title">Navigate</span>
+    <div class="spacer"></div>
+    <div class="status-dot"></div>
+  </div>
+  <div class="content">
+    <div class="text-center gap-md">
+      <div class="confirm-badge"><i class="fas fa-check"></i></div>
+      <div style="font-family:'Rajdhani',sans-serif; font-size:1.4rem; font-weight:700; color:var(--neon2); margin-bottom:4px;">Booking Confirmed!</div>
+      <div class="text-muted">Your parking slot has been reserved.</div>
+    </div>
+
+    <div class="booking-id-box">
+      <div>
+        <div class="bid-label">Booking ID</div>
+        <div class="bid-value" id="bid-val">SP-000000</div>
+      </div>
+      <i class="fas fa-copy bid-copy" onclick="copyBID()"></i>
+    </div>
+
+    <div class="map-placeholder" id="nav-map">
+      <div class="map-grid"></div>
+      <!-- roads filled by JS -->
+      <svg class="map-route" viewBox="0 0 400 220"><polyline id="route-line" points="" fill="none" stroke="rgba(0,229,255,0.6)" stroke-width="2.5" stroke-dasharray="6 4"/></svg>
+      <div class="map-pin" id="pin-you" style="top:65%; left:22%">
+        <div class="map-pin-inner"></div>
+        <div class="map-label">You</div>
+      </div>
+      <div class="map-pin" id="pin-dest" style="top:22%; left:62%">
+        <div class="map-pin-inner dest"></div>
+        <div class="map-label dest-label" id="pin-dest-label">Parking</div>
+      </div>
+    </div>
+
+    <div class="eta-row">
+      <div class="eta-card"><i class="fas fa-clock"></i><div class="eta-val" id="eta-time">7 min</div><div class="eta-sub">ETA</div></div>
+      <div class="eta-card"><i class="fas fa-route"></i><div class="eta-val" id="eta-dist">1.2 km</div><div class="eta-sub">Distance</div></div>
+      <div class="eta-card"><i class="fas fa-car"></i><div class="eta-val" id="eta-slot">—</div><div class="eta-sub">Slot</div></div>
+    </div>
+
+    <div class="card gap-md" style="font-size:0.85rem; color:var(--muted); line-height:1.7;">
+      <i class="fas fa-navigation" style="color:var(--neon); margin-right:8px;"></i>
+      Head <strong style="color:var(--text)">North on MG Road</strong> → Turn right on Park St →
+      Enter <strong style="color:var(--text)" id="nav-dest-name">Destination</strong> from Gate 2.
+    </div>
+
+    <button class="btn btn-primary btn-full" onclick="goTo('screen-home')">
+      <i class="fas fa-home"></i> Back to Home
+    </button>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<script>
+/* ─── STATE ─────────────────────────────────────────────────────────── */
+const state = {
+  selectedArea: null,
+  selectedSlot: null,
+  selectedDuration: 1,
+  pricePerHour: 0,
+};
+
+/* ─── DATA ──────────────────────────────────────────────────────────── */
+const recentLocations = [
+  { name: 'Phoenix Mall', sub: '2.1 km away · Mall', icon: 'fa-store' },
+  { name: 'Cyber Tower Parking', sub: '3.4 km away · Office', icon: 'fa-building' },
+  { name: 'MG Road Street', sub: '0.8 km away · Street', icon: 'fa-road' },
+  { name: 'Tech Park Basement', sub: '4.2 km away · Office', icon: 'fa-laptop-code' },
+];
+
+const parkingAreas = [
+  { id:1, name:'Phoenix Mall Parking',  slots:14, total:40, distance:'500m',  price:50, type:'Mall'   },
+  { id:2, name:'Cyber Tower Office',    slots:0,  total:20, distance:'1.2km', price:30, type:'Office' },
+  { id:3, name:'MG Road Street Park',   slots:6,  total:12, distance:'300m',  price:20, type:'Street' },
+  { id:4, name:'Tech Hub Basement',     slots:22, total:60, distance:'2.1km', price:40, type:'Office' },
+  { id:5, name:'City Centre Mall',      slots:3,  total:30, distance:'800m',  price:60, type:'Mall'   },
+  { id:6, name:'Airport Terminal P2',   slots:45, total:80, distance:'5.0km', price:80, type:'Airport'},
+];
+
+const durations = [1,2,3,4,6,8];
+const prices    = { 1:1, 2:1.8, 3:2.5, 4:3, 6:4.2, 8:5 };  // multiplier
+
+/* ─── NAVIGATION ────────────────────────────────────────────────────── */
+function goTo(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const target = document.getElementById(id);
+  target.classList.add('active');
+  window.scrollTo(0,0);
+
+  if(id === 'screen-location') renderRecentList(recentLocations);
+  if(id === 'screen-availability') renderParkingList('all');
+  if(id === 'screen-booking') renderBookingScreen();
+}
+
+/* ─── SCREEN 2: LOCATION ────────────────────────────────────────────── */
+function renderRecentList(items) {
+  const el = document.getElementById('recent-list');
+  el.innerHTML = items.map(i => `
+    <div class="recent-item" onclick="pickLocation('${i.name}')">
+      <div class="ri-icon"><i class="fas ${i.icon}"></i></div>
+      <div><div class="ri-name">${i.name}</div><div class="ri-sub">${i.sub}</div></div>
+      <i class="fas fa-chevron-right ri-arrow"></i>
+    </div>`).join('');
+}
+function filterLocations(q) {
+  const filtered = recentLocations.filter(l => l.name.toLowerCase().includes(q.toLowerCase()));
+  renderRecentList(filtered.length ? filtered : recentLocations);
+}
+function selectLocType(el, type) {
+  document.querySelectorAll('.loc-type-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+}
+function useCurrentLocation() {
+  showToast('📍 Location detected!');
+  setTimeout(() => goTo('screen-availability'), 700);
+}
+function pickLocation(name) {
+  state.selectedArea = { name };
+  goTo('screen-availability');
+}
+
+/* ─── SCREEN 3: AVAILABILITY ────────────────────────────────────────── */
+function renderParkingList(filter) {
+  let list = [...parkingAreas];
+  if(filter === 'available') list = list.filter(p => p.slots > 0);
+  if(filter === 'cheapest')  list = [...list].sort((a,b) => a.price - b.price);
+  if(filter === 'nearest')   list = [...list].sort((a,b) => parseFloat(a.distance) - parseFloat(b.distance));
+
+  document.getElementById('parking-list').innerHTML = list.map(p => {
+    const full = p.slots === 0;
+    return `
+    <div class="parking-card ${full ? 'full' : ''}" onclick="${full ? '' : `selectParking(${p.id})`}" style="${full ? 'cursor:not-allowed' : ''}">
+      <div class="pc-top">
+        <div class="pc-name">${p.name}</div>
+        <div class="badge ${full ? 'badge-full' : 'badge-available'}">
+          <i class="fas fa-circle" style="font-size:.5rem;"></i>${full ? 'FULL' : 'OPEN'}
+        </div>
+      </div>
+      <div class="pc-meta">
+        <span class="chip"><i class="fas fa-location-dot"></i>${p.distance}</span>
+        <span class="chip"><i class="fas fa-tag"></i>₹${p.price}/hr</span>
+        <span class="chip"><i class="fas fa-layer-group"></i>${p.type}</span>
+      </div>
+      <div class="pc-bottom">
+        <div class="pc-slots ${full ? 'full' : 'available'}">
+          <strong>${p.slots}</strong> / ${p.total} slots free
+        </div>
+        ${!full ? `<button class="btn btn-sm btn-primary" onclick="event.stopPropagation();selectParking(${p.id})">Select <i class="fas fa-arrow-right"></i></button>` : '<span class="text-muted" style="font-size:.8rem">No slots</span>'}
+      </div>
+    </div>`;
+  }).join('');
+}
+function setFilter(el, type) {
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderParkingList(type);
+}
+function selectParking(id) {
+  const area = parkingAreas.find(p => p.id === id);
+  state.selectedArea = area;
+  state.pricePerHour = area.price;
+  renderSlots(area);
+  goTo('screen-slots');
+}
+
+/* ─── SCREEN 4: SLOTS ───────────────────────────────────────────────── */
+function renderSlots(area) {
+  document.getElementById('slot-banner-name').textContent = area.name;
+  document.getElementById('slot-banner-sub').textContent  = `${area.slots} slots available · ₹${area.price}/hr`;
+
+  const zones = [
+    { label: 'Zone A', prefix: 'A', count: 8 },
+    { label: 'Zone B', prefix: 'B', count: 8 },
+    { label: 'Zone C', prefix: 'C', count: 6 },
+  ];
+
+  // Deterministically pick booked slots
+  const bookedSet = new Set();
+  [1,3,5,7,10,12,14,16,18,19,20,22].forEach(n => bookedSet.add(n));
+
+  let globalIdx = 1;
+  document.getElementById('slot-zones').innerHTML = zones.map(z => {
+    let cells = '';
+    for(let i = 1; i <= z.count; i++, globalIdx++) {
+      const label = `${z.prefix}${i}`;
+      const booked = bookedSet.has(globalIdx);
+      cells += `
+        <div class="slot-cell ${booked ? 'booked' : 'available'}" id="slot-${label}"
+          onclick="${booked ? '' : `pickSlot('${label}')`}">
+          <i class="fas ${booked ? 'fa-car' : 'fa-parking'}"></i>
+          ${label}
+        </div>`;
+    }
+    return `<div class="zone-label">${z.label}</div><div class="slot-grid">${cells}</div>`;
+  }).join('');
+
+  state.selectedSlot = null;
+  updateSlotButton();
+}
+function pickSlot(id) {
+  if(state.selectedSlot) {
+    const prev = document.getElementById(`slot-${state.selectedSlot}`);
+    if(prev) { prev.classList.remove('selected'); prev.classList.add('available'); }
+  }
+  state.selectedSlot = id;
+  const el = document.getElementById(`slot-${id}`);
+  el.classList.remove('available'); el.classList.add('selected');
+  document.getElementById('selected-slot-label').textContent = `Slot ${id}`;
+  updateSlotButton();
+}
+function updateSlotButton() {
+  const btn = document.getElementById('proceed-btn');
+  btn.disabled = !state.selectedSlot;
+  btn.style.opacity = state.selectedSlot ? '1' : '0.4';
+}
+function proceedToBooking() {
+  if(state.selectedSlot) goTo('screen-booking');
+}
+
+/* ─── SCREEN 5: BOOKING ─────────────────────────────────────────────── */
+function renderBookingScreen() {
+  const area = state.selectedArea;
+  const slot = state.selectedSlot;
+  document.getElementById('booking-summary').innerHTML = `
+    <div class="bs-row"><span class="bs-label">Location</span><span class="bs-value">${area.name}</span></div>
+    <div class="bs-row"><span class="bs-label">Slot</span><span class="bs-value highlight">Slot ${slot}</span></div>
+    <div class="bs-row"><span class="bs-label">Rate</span><span class="bs-value">₹${area.price} / hour</span></div>
+    <div class="bs-row"><span class="bs-label">Date</span><span class="bs-value">${new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}</span></div>
+  `;
+  const grid = document.getElementById('dur-grid');
+  grid.innerHTML = durations.map(d => {
+    const cost = Math.round(area.price * prices[d]);
+    return `<div class="dur-btn ${d===state.selectedDuration?'active':''}" onclick="selectDuration(${d},this)">
+      <span class="dur-time">${d}h</span>
+      <span class="dur-price">₹${cost}</span>
+    </div>`;
+  }).join('');
+  updateTotal();
+}
+function selectDuration(d, el) {
+  document.querySelectorAll('.dur-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  state.selectedDuration = d;
+  updateTotal();
+}
+function updateTotal() {
+  const cost = Math.round(state.pricePerHour * prices[state.selectedDuration]);
+  document.getElementById('total-amount').textContent = `₹${cost}`;
+}
+function confirmBooking() {
+  const bid = 'SP-' + Math.floor(100000 + Math.random() * 900000);
+  document.getElementById('bid-val').textContent = bid;
+  document.getElementById('eta-slot').textContent = state.selectedSlot;
+  document.getElementById('pin-dest-label').textContent = state.selectedArea.name.split(' ')[0];
+  document.getElementById('nav-dest-name').textContent = state.selectedArea.name;
+  buildMapRoute();
+  goTo('screen-nav');
+  showToast('🎉 Booking confirmed!');
+}
+
+/* ─── SCREEN 6: MAP ─────────────────────────────────────────────────── */
+function buildMapRoute() {
+  const map = document.getElementById('nav-map');
+  // clear old roads
+  map.querySelectorAll('.map-road-h,.map-road-v').forEach(r => r.remove());
+  const roads = [[30,'map-road-h'],[70,'map-road-h'],[25,'map-road-v'],[60,'map-road-v']];
+  roads.forEach(([pct, cls]) => {
+    const r = document.createElement('div');
+    r.className = cls;
+    if(cls === 'map-road-h') r.style.top = pct+'%';
+    else r.style.left = pct+'%';
+    map.insertBefore(r, map.querySelector('svg'));
+  });
+
+  const w = 400, h = 220;
+  const youX = 0.22*w, youY = 0.65*h;
+  const dstX = 0.62*w, dstY = 0.22*h;
+  document.getElementById('route-line').setAttribute('points',
+    `${youX},${youY} ${youX},${dstY} ${dstX},${dstY}`);
+}
+
+/* ─── TOAST ─────────────────────────────────────────────────────────── */
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2600);
+}
+function copyBID() {
+  navigator.clipboard?.writeText(document.getElementById('bid-val').textContent);
+  showToast('📋 Booking ID copied!');
+}
+
+/* ─── INIT ──────────────────────────────────────────────────────────── */
+renderRecentList(recentLocations);
+</script>
+</body>
+</html>
